@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "demo",
+      "runtimeExecutable": "dotnet",
+      "runtimeArgs": ["run", "--no-build", "--project", "SqliteToolkit/SqliteToolkit.Demo", "--launch-profile", "http"],
+      "port": 5188
+    }
+  ]
+}

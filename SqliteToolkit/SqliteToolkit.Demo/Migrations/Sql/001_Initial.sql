@@ -1,0 +1,11 @@
+CREATE TABLE IF NOT EXISTS Client
+(
+    Id INTEGER PRIMARY KEY AUTOINCREMENT,
+    Nom TEXT NOT NULL,
+    Prenom TEXT,
+    Email TEXT,
+    Telephone TEXT
+);
+
+CREATE INDEX IF NOT EXISTS IX_Client_Nom
+ON Client(Nom);

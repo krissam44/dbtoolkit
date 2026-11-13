@@ -1,0 +1,291 @@
+﻿@page "/clients-test"
+
+@using MudBlazor
+@using SqliteToolkit.Adapters.MudBlazor
+@using SqliteToolkit.Demo.Models
+@using SqliteToolkit.Demo.Services
+@using SqliteToolkit.Demo.Components.Dialogs
+
+@inject ClientService ClientService
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+
+<PageTitle>Gestion des clients</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-6">
+
+    <MudStack Row="true"
+              AlignItems="AlignItems.Center"
+              Justify="Justify.SpaceBetween"
+              Class="mb-4">
+
+        <MudText Typo="Typo.h4">
+            Gestion des clients
+        </MudText>
+
+        <MudButton Variant="Variant.Filled"
+                   Color="Color.Primary"
+                   StartIcon="@Icons.Material.Filled.Add"
+                   OnClick="NouveauClient">
+            Nouveau client
+        </MudButton>
+
+    </MudStack>
+
+    <MudPaper Elevation="2" Class="pa-4">
+
+        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-4">
+
+            <MudTextField T="string"
+                          @bind-Value="_searchTerm"
+                          Label="Rechercher un client"
+                          Placeholder="Nom, prénom ou email"
+                          Variant="Variant.Outlined"
+                          Margin="Margin.Dense"
+                          Clearable="true"
+                          Immediate="true"
+                          OnKeyUp="RechercherSiEntree"
+                          Adornment="Adornment.Start"
+                          AdornmentIcon="@Icons.Material.Filled.Search"
+                          Style="max-width:350px" />
+
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Primary"
+                       OnClick="Rechercher">
+                Rechercher
+            </MudButton>
+
+            <MudButton Variant="Variant.Outlined"
+                       OnClick="EffacerRecherche">
+                Effacer
+            </MudButton>
+
+        </MudStack>
+
+        @* Pagination, tris et filtres sont exécutés en SQL : la grille
+           transmet son état à ChargerPage, qui le traduit en PageRequest. *@
+        <MudDataGrid T="Client"
+                     @ref="_grid"
+                     ServerData="ChargerPage"
+                     Dense="true"
+                     Hover="true"
+                     Striped="true"
+                     Bordered="false"
+                     Filterable="true"
+                     SortMode="SortMode.Multiple">
+
+            <Columns>
+
+                <PropertyColumn Property="x => x.Id"
+                                Title="Id"
+                                HeaderStyle="width:110px" />
+
+                <PropertyColumn Property="x => x.Nom"
+                                Title="Nom" />
+
+                <PropertyColumn Property="x => x.Prenom"
+                                Title="Prénom" />
+
+                <PropertyColumn Property="x => x.Email"
+                                Title="Email" />
+
+                <TemplateColumn Title="Actions"
+                                Sortable="false"
+                                Filterable="false">
+
+                    <CellTemplate Context="cell">
+
+                        <MudIconButton Icon="@Icons.Material.Filled.Edit"
+                                       Color="Color.Primary"
+                                       Size="Size.Small"
+                                       title="Modifier"
+                                       OnClick="@(() => ModifierClient(cell.Item))" />
+
+                        <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                                       Color="Color.Error"
+                                       Size="Size.Small"
+                                       title="Supprimer"
+                                       OnClick="@(() => SupprimerClient(cell.Item))" />
+
+                    </CellTemplate>
+
+                </TemplateColumn>
+
+            </Columns>
+
+            <PagerContent>
+                <MudDataGridPager T="Client"
+                                  RowsPerPageString="Lignes par page :"
+                                  InfoFormat="{first_item}-{last_item} sur {all_items}" />
+            </PagerContent>
+
+        </MudDataGrid>
+
+    </MudPaper>
+
+</MudContainer>
+
+@code {
+
+    private MudDataGrid<Client> _grid = default!;
+
+    private string _searchTerm = string.Empty;
+
+    private async Task<GridData<Client>> ChargerPage(
+        GridState<Client> state,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var result = await ClientService.GetPagedAsync(
+                state.ToPageRequest(_searchTerm),
+                cancellationToken);
+
+            return result.ToGridData();
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(
+                $"Erreur lors du chargement : {ex.Message}",
+                Severity.Error);
+
+            return new GridData<Client>();
+        }
+    }
+
+    private async Task Rechercher()
+    {
+        // Une nouvelle recherche repart de la première page.
+        await _grid.SetRowsPerPageAsync(_grid.RowsPerPage, resetPage: true);
+        await _grid.ReloadServerData();
+    }
+
+    private async Task RechercherSiEntree(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+            await Rechercher();
+    }
+
+    private async Task EffacerRecherche()
+    {
+        _searchTerm = string.Empty;
+        await Rechercher();
+    }
+
+    private async Task NouveauClient()
+    {
+        await OuvrirDialogue(new Client());
+    }
+
+    private async Task ModifierClient(Client client)
+    {
+        // On travaille sur une copie pour ne pas modifier
+        // directement la ligne avant validation.
+        var copie = new Client
+        {
+            Id = client.Id,
+            Nom = client.Nom,
+            Prenom = client.Prenom,
+            Email = client.Email,
+            Telephone = client.Telephone
+        };
+
+        await OuvrirDialogue(copie);
+    }
+
+    private async Task OuvrirDialogue(Client client)
+    {
+        var estNouveau = client.Id == 0;
+
+        var parameters = new DialogParameters
+        {
+            ["Client"] = client
+        };
+
+        var options = new DialogOptions
+        {
+            MaxWidth = MaxWidth.Small,
+            FullWidth = true,
+            CloseOnEscapeKey = true
+        };
+
+        var dialog = await DialogService.ShowAsync<ClientDialog>(
+            estNouveau ? "Nouveau client" : "Modifier le client",
+            parameters,
+            options);
+
+        var result = await dialog.Result;
+
+        if (result == null || result.Canceled)
+            return;
+
+        var clientModifie = (Client)result.Data!;
+
+        try
+        {
+            if (estNouveau)
+            {
+                await ClientService.InsertAsync(clientModifie);
+                Snackbar.Add("Client ajouté.", Severity.Success);
+            }
+            else
+            {
+                var updated = await ClientService.UpdateAsync(clientModifie);
+
+                if (!updated)
+                {
+                    Snackbar.Add("Aucun client modifié.", Severity.Warning);
+                    return;
+                }
+
+                Snackbar.Add("Client modifié.", Severity.Success);
+            }
+
+            await _grid.ReloadServerData();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(
+                $"Erreur : {ex.Message}",
+                Severity.Error);
+        }
+    }
+
+    private async Task SupprimerClient(Client client)
+    {
+        var confirmation = await DialogService.ShowMessageBoxAsync(
+            "Confirmation",
+            $"Voulez-vous vraiment supprimer le client {client.Nom} {client.Prenom} ?",
+            yesText: "Supprimer",
+            cancelText: "Annuler");
+
+        if (confirmation != true)
+            return;
+
+        try
+        {
+            var deleted = await ClientService.DeleteAsync(client.Id);
+
+            if (deleted)
+            {
+                Snackbar.Add("Client supprimé.", Severity.Success);
+                await _grid.ReloadServerData();
+            }
+            else
+            {
+                Snackbar.Add("Client introuvable.", Severity.Warning);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(
+                $"Erreur lors de la suppression : {ex.Message}",
+                Severity.Error);
+        }
+    }
+
+}
