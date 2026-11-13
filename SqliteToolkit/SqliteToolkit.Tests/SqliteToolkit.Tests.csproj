@@ -19,6 +19,7 @@
   <ItemGroup>
     <ProjectReference Include="..\SqliteToolkit\SqliteToolkit.csproj" />
     <ProjectReference Include="..\SqliteToolkit.Adapters.MudBlazor\SqliteToolkit.Adapters.MudBlazor.csproj" />
+    <ProjectReference Include="..\SqliteToolkit.Adapters.Syncfusion\SqliteToolkit.Adapters.Syncfusion.csproj" />
   </ItemGroup>
 
   <ItemGroup>
