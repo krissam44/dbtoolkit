@@ -1,6 +1,6 @@
-﻿using SqliteToolkit.Abstractions;
+﻿using DbToolkit.Abstractions;
 using SqliteToolkit.Demo.Models;
-using SqliteToolkit.Repositories;
+using DbToolkit.Repositories;
 
 namespace SqliteToolkit.Demo.Repositories;
 

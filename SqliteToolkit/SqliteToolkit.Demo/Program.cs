@@ -1,11 +1,11 @@
 using SqliteToolkit;
-using SqliteToolkit.Adapters.AspNetCore;
+using DbToolkit.Adapters.AspNetCore;
 using SqliteToolkit.Demo.Api;
 using SqliteToolkit.Demo.Components;
 using SqliteToolkit.Demo.Data;
 using SqliteToolkit.Demo.Repositories;
 using SqliteToolkit.Demo.Services;
-using SqliteToolkit.Migrations;
+using DbToolkit.Migrations;
 using System.Reflection;
 using MudBlazor.Services;
 using Syncfusion.Blazor;

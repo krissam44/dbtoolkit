@@ -20,9 +20,9 @@
 
   <ItemGroup>
     <ProjectReference Include="..\SqliteToolkit\SqliteToolkit.csproj" />
-    <ProjectReference Include="..\SqliteToolkit.Adapters.AspNetCore\SqliteToolkit.Adapters.AspNetCore.csproj" />
-    <ProjectReference Include="..\SqliteToolkit.Adapters.MudBlazor\SqliteToolkit.Adapters.MudBlazor.csproj" />
-    <ProjectReference Include="..\SqliteToolkit.Adapters.Syncfusion\SqliteToolkit.Adapters.Syncfusion.csproj" />
+    <ProjectReference Include="..\DbToolkit.Adapters.AspNetCore\DbToolkit.Adapters.AspNetCore.csproj" />
+    <ProjectReference Include="..\DbToolkit.Adapters.MudBlazor\DbToolkit.Adapters.MudBlazor.csproj" />
+    <ProjectReference Include="..\DbToolkit.Adapters.Syncfusion\DbToolkit.Adapters.Syncfusion.csproj" />
   </ItemGroup>
 
   <ItemGroup>

@@ -1,8 +1,10 @@
 <Solution>
-  <Project Path="SqliteToolkit.Adapters.AspNetCore/SqliteToolkit.Adapters.AspNetCore.csproj" />
-  <Project Path="SqliteToolkit.Adapters.MudBlazor/SqliteToolkit.Adapters.MudBlazor.csproj" />
-  <Project Path="SqliteToolkit.Adapters.Syncfusion/SqliteToolkit.Adapters.Syncfusion.csproj" />
-  <Project Path="SqliteToolkit.Demo/SqliteToolkit.Demo.csproj" />
-  <Project Path="SqliteToolkit.Tests/SqliteToolkit.Tests.csproj" />
+  <Project Path="DbToolkit/DbToolkit.csproj" />
+  <Project Path="DbToolkit.Adapters.AspNetCore/DbToolkit.Adapters.AspNetCore.csproj" />
+  <Project Path="DbToolkit.Adapters.MudBlazor/DbToolkit.Adapters.MudBlazor.csproj" />
+  <Project Path="DbToolkit.Adapters.Syncfusion/DbToolkit.Adapters.Syncfusion.csproj" />
+  <Project Path="DbToolkit.Tests/DbToolkit.Tests.csproj" />
+  <Project Path="MariaDbToolkit/MariaDbToolkit.csproj" />
   <Project Path="SqliteToolkit/SqliteToolkit.csproj" />
+  <Project Path="SqliteToolkit.Demo/SqliteToolkit.Demo.csproj" />
 </Solution>

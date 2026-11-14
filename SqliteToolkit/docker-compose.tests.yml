@@ -1,0 +1,22 @@
+# Serveur MariaDB jetable pour les tests d'intégration.
+#
+#   docker compose -f docker-compose.tests.yml up -d     (démarrer)
+#   docker compose -f docker-compose.tests.yml down -v   (arrêter et tout effacer)
+#
+# Le port 3317 évite tout conflit avec un MariaDB installé sur le poste (3306).
+# Les identifiants ci-dessous ne servent qu'à ce conteneur de test.
+services:
+  mariadb-tests:
+    image: mariadb:11.4
+    container_name: dbtoolkit-mariadb-tests
+    environment:
+      MARIADB_ROOT_PASSWORD: dbtoolkit_tests
+    ports:
+      - "127.0.0.1:3317:3306"
+    tmpfs:
+      - /var/lib/mysql
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 3s
+      timeout: 3s
+      retries: 20

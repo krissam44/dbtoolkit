@@ -1,6 +1,7 @@
-﻿using Microsoft.Data.Sqlite;
+﻿using System.Data.Common;
+using DbToolkit.Abstractions;
+using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.Options;
-using SqliteToolkit.Abstractions;
 using SqliteToolkit.Configuration;
 
 namespace SqliteToolkit.Infrastructure;
@@ -14,7 +15,9 @@ public sealed class SqliteConnectionFactory : IDbConnectionFactory
         _options = options.Value;
     }
 
-    public SqliteConnection CreateConnection()
+    public ISqlDialect Dialect => SqliteDialect.Instance;
+
+    public DbConnection CreateConnection()
     {
         if (string.IsNullOrWhiteSpace(_options.ConnectionString))
         {

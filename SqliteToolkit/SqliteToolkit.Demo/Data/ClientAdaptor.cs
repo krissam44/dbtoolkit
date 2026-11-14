@@ -1,5 +1,5 @@
 using System.Text.Json;
-using SqliteToolkit.Adapters.Syncfusion;
+using DbToolkit.Adapters.Syncfusion;
 using SqliteToolkit.Demo.Models;
 using SqliteToolkit.Demo.Services;
 using Syncfusion.Blazor;

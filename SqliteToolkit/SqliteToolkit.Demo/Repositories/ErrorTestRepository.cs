@@ -1,6 +1,6 @@
 ﻿using Microsoft.Extensions.Logging;
-using SqliteToolkit.Abstractions;
-using SqliteToolkit.Repositories;
+using DbToolkit.Abstractions;
+using DbToolkit.Repositories;
 
 namespace SqliteToolkit.Demo.Repositories;
 

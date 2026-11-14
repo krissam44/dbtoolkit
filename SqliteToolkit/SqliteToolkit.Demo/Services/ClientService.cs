@@ -1,7 +1,7 @@
 ﻿
 using SqliteToolkit.Demo.Models;
 using SqliteToolkit.Demo.Repositories;
-using SqliteToolkit.Models;
+using DbToolkit.Models;
 
 namespace SqliteToolkit.Demo.Services;
 

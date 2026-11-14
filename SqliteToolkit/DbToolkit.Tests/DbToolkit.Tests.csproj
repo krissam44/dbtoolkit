@@ -1,0 +1,31 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <OutputType>Exe</OutputType>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>false</IsPackable>
+    <!-- xUnit1051 : les tests laissent volontairement les jetons d'annulation par défaut. -->
+    <NoWarn>$(NoWarn);xUnit1051</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+    <PackageReference Include="Microsoft.AspNetCore.TestHost" Version="10.0.14" />
+    <PackageReference Include="xunit.v3" Version="4.0.3" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\SqliteToolkit\SqliteToolkit.csproj" />
+    <ProjectReference Include="..\MariaDbToolkit\MariaDbToolkit.csproj" />
+    <ProjectReference Include="..\DbToolkit.Adapters.AspNetCore\DbToolkit.Adapters.AspNetCore.csproj" />
+    <ProjectReference Include="..\DbToolkit.Adapters.MudBlazor\DbToolkit.Adapters.MudBlazor.csproj" />
+    <ProjectReference Include="..\DbToolkit.Adapters.Syncfusion\DbToolkit.Adapters.Syncfusion.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit" />
+  </ItemGroup>
+
+</Project>

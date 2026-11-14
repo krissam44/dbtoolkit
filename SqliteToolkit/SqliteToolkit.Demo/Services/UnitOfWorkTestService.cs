@@ -1,4 +1,4 @@
-﻿using SqliteToolkit.Abstractions;
+﻿using DbToolkit.Abstractions;
 using SqliteToolkit.Demo.Models;
 using SqliteToolkit.Demo.Repositories;
 

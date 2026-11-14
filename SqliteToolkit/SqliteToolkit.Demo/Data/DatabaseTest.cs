@@ -1,7 +1,7 @@
 ﻿using Dapper;
-using SqliteToolkit.Abstractions;
+using DbToolkit.Abstractions;
 using SqliteToolkit.Demo.Repositories;
-using SqliteToolkit.Exceptions;
+using DbToolkit.Exceptions;
 
 namespace SqliteToolkit.Demo.Data;
 

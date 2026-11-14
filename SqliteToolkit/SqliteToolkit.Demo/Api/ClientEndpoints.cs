@@ -1,9 +1,9 @@
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
-using SqliteToolkit.Adapters.AspNetCore;
+using DbToolkit.Adapters.AspNetCore;
 using SqliteToolkit.Demo.Models;
 using SqliteToolkit.Demo.Services;
-using SqliteToolkit.Models;
+using DbToolkit.Models;
 
 namespace SqliteToolkit.Demo.Api;
 
