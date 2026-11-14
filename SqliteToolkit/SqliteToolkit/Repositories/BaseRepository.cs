@@ -105,11 +105,12 @@ public abstract class BaseRepository<TEntity, TKey>
                 operationName,
                 GetType().Name);
 
-            if (ex is SqliteException)
+            if (ex is SqliteException sqliteException)
             {
                 throw new DataAccessException(
                     $"Erreur SQLite lors de l'opération {operationName}.",
-                    ex);
+                    ex,
+                    Classify(sqliteException));
             }
 
             throw;
@@ -119,6 +120,23 @@ public abstract class BaseRepository<TEntity, TKey>
             if (ownedConnection != null)
                 await ownedConnection.DisposeAsync();
         }
+    }
+
+    // ---------------------------------------------------------------------------------
+
+    // Codes étendus SQLite : https://www.sqlite.org/rescode.html
+    private static DataAccessErrorKind Classify(SqliteException exception)
+    {
+        return exception.SqliteExtendedErrorCode switch
+        {
+            2067 or 1555 => DataAccessErrorKind.UniqueViolation,   // UNIQUE, PRIMARY KEY
+            787 => DataAccessErrorKind.ForeignKeyViolation,
+            1299 => DataAccessErrorKind.NotNullViolation,
+            275 => DataAccessErrorKind.CheckViolation,
+            _ => exception.SqliteErrorCode is 5 or 6                // BUSY, LOCKED
+                ? DataAccessErrorKind.Busy
+                : DataAccessErrorKind.Unknown
+        };
     }
 
     // ---------------------------------------------------------------------------------

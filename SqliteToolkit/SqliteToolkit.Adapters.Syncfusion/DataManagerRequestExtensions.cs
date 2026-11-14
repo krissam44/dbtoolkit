@@ -48,8 +48,9 @@ public static class DataManagerRequestExtensions
         // Même priorité que DataOperations.PerformSorting :
         // le premier tri de la liste est le tri principal.
         var sorts = (request.Sorted ?? [])
+            .Where(sort => !string.IsNullOrEmpty(sort.Name))
             .Select(sort => new SortCriteria(
-                sort.Name,
+                sort.Name!,
                 sort.Direction?.StartsWith("desc", StringComparison.OrdinalIgnoreCase) == true))
             .ToList();
 

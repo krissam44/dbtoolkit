@@ -1,4 +1,6 @@
 using SqliteToolkit;
+using SqliteToolkit.Adapters.AspNetCore;
+using SqliteToolkit.Demo.Api;
 using SqliteToolkit.Demo.Components;
 using SqliteToolkit.Demo.Data;
 using SqliteToolkit.Demo.Repositories;
@@ -6,6 +8,7 @@ using SqliteToolkit.Demo.Services;
 using SqliteToolkit.Migrations;
 using System.Reflection;
 using MudBlazor.Services;
+using Syncfusion.Blazor;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -35,6 +38,21 @@ builder.Services.AddScoped<ClientRepository>();
 builder.Services.AddScoped<ClientService>();
 
 builder.Services.AddMudServices();
+
+// Syncfusion : la clé de licence est lue dans la configuration
+// (dotnet user-secrets set "Syncfusion:LicenseKey" "..."), jamais dans le dépôt.
+var syncfusionLicenseKey = builder.Configuration["Syncfusion:LicenseKey"];
+
+if (!string.IsNullOrWhiteSpace(syncfusionLicenseKey))
+{
+    Syncfusion.Licensing.SyncfusionLicenseProvider.RegisterLicense(syncfusionLicenseKey);
+}
+
+// API minimale : bornes appliquées aux demandes de page venues de l'extérieur.
+builder.Services.AddSqliteToolkitApi();
+
+builder.Services.AddSyncfusionBlazor();
+builder.Services.AddScoped<ClientAdaptor>();
 
 builder.Services.AddScoped<ErrorTestRepository>();
 builder.Services.AddScoped<UnitOfWorkTestService>();
@@ -89,6 +107,8 @@ app.UseStatusCodePagesWithReExecute("/not-found", createScopeForStatusCodePages:
 app.UseHttpsRedirection();
 
 app.UseAntiforgery();
+
+app.MapClientEndpoints();
 
 app.MapStaticAssets();
 app.MapRazorComponents<App>()

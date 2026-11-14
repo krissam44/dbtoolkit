@@ -32,18 +32,33 @@ public sealed class TestDatabase : IAsyncDisposable
 
     public static async Task<TestDatabase> CreateAsync()
     {
-        var path = Path.Combine(
-            Path.GetTempPath(),
-            $"sqlitetoolkit_tests_{Guid.NewGuid():N}.db");
+        var path = NewPath();
 
         var services = new ServiceCollection();
         services.AddLogging();
-        services.AddSqliteToolkit(options => options.ConnectionString = $"Data Source={path}");
-        services.AddSingleton<ItemRepository>();
-        services.AddSingleton<BareItemRepository>();
+        ConfigureServices(services, path);
 
         var provider = services.BuildServiceProvider();
 
+        await CreateSchemaAsync(provider);
+
+        return new TestDatabase(path, provider);
+    }
+
+    public static string NewPath()
+        => Path.Combine(
+            Path.GetTempPath(),
+            $"sqlitetoolkit_tests_{Guid.NewGuid():N}.db");
+
+    public static void ConfigureServices(IServiceCollection services, string path)
+    {
+        services.AddSqliteToolkit(options => options.ConnectionString = $"Data Source={path}");
+        services.AddSingleton<ItemRepository>();
+        services.AddSingleton<BareItemRepository>();
+    }
+
+    public static async Task CreateSchemaAsync(IServiceProvider provider)
+    {
         await using var db = provider
             .GetRequiredService<IDbConnectionFactory>()
             .CreateConnection();
@@ -56,30 +71,39 @@ public sealed class TestDatabase : IAsyncDisposable
             (
                 Id INTEGER PRIMARY KEY AUTOINCREMENT,
                 Nom TEXT NOT NULL UNIQUE,
-                Quantite INTEGER NOT NULL DEFAULT 0,
+                Quantite INTEGER NOT NULL DEFAULT 0 CHECK (Quantite >= 0),
                 Note TEXT
             );
-            """);
 
-        return new TestDatabase(path, provider);
+            CREATE TABLE Etiquette
+            (
+                Id INTEGER PRIMARY KEY AUTOINCREMENT,
+                ItemId INTEGER NOT NULL REFERENCES Item(Id)
+            );
+            """);
     }
 
-    public async ValueTask DisposeAsync()
+    public static void DeleteFile(string path)
     {
-        await _provider.DisposeAsync();
-
         // Les connexions restent ouvertes dans le pool : il faut le vider
         // pour libérer le fichier avant de le supprimer.
         SqliteConnection.ClearAllPools();
 
         try
         {
-            File.Delete(_path);
+            File.Delete(path);
         }
         catch (IOException)
         {
             // Fichier temporaire encore verrouillé : sans conséquence pour le test.
         }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        await _provider.DisposeAsync();
+
+        DeleteFile(_path);
     }
 }
 
@@ -127,6 +151,28 @@ public class ItemRepository(IDbConnectionFactory factory, ILogger<ItemRepository
 
     protected override string DeleteSql
         => "DELETE FROM Item WHERE Id = @Id";
+
+    /// <summary>Requête spécifique passant par ExecuteAsync, comme dans un vrai repository.</summary>
+    public Task<int> AddEtiquetteAsync(int itemId)
+    {
+        return ExecuteAsync(
+            (db, transaction) => db.ExecuteAsync(
+                "INSERT INTO Etiquette (ItemId) VALUES (@itemId)",
+                new { itemId },
+                transaction),
+            unitOfWork: null,
+            CancellationToken.None);
+    }
+
+    public Task<int> QueryMissingTableAsync()
+    {
+        return ExecuteAsync(
+            (db, transaction) => db.ExecuteAsync(
+                "DELETE FROM TableInexistante",
+                transaction: transaction),
+            unitOfWork: null,
+            CancellationToken.None);
+    }
 }
 
 /// <summary>

@@ -495,3 +495,6 @@ $RECYCLE.BIN/
 
 # Anciens fichiers mis de côté pendant le refactoring
 _sauvegarde/
+
+# Base jetable de la configuration de lancement demo-base-temporaire
+*.tmp.db*
