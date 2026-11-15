@@ -1,0 +1,10 @@
+<Solution>
+  <Project Path="DbToolkit/DbToolkit.csproj" />
+  <Project Path="DbToolkit.Adapters.AspNetCore/DbToolkit.Adapters.AspNetCore.csproj" />
+  <Project Path="DbToolkit.Adapters.MudBlazor/DbToolkit.Adapters.MudBlazor.csproj" />
+  <Project Path="DbToolkit.Adapters.Syncfusion/DbToolkit.Adapters.Syncfusion.csproj" />
+  <Project Path="DbToolkit.Tests/DbToolkit.Tests.csproj" />
+  <Project Path="MariaDbToolkit/MariaDbToolkit.csproj" />
+  <Project Path="SqliteToolkit/SqliteToolkit.csproj" />
+  <Project Path="DbToolkit.Demo/DbToolkit.Demo.csproj" />
+</Solution>

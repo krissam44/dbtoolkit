@@ -1,0 +1,32 @@
+﻿@page "/"
+
+<PageTitle>DbToolkit - Démo</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.Small" Class="mt-6">
+
+    <MudText Typo="Typo.h4" Class="mb-4">
+        DbToolkit - Démo
+    </MudText>
+
+    <MudStack Spacing="2">
+
+        <MudButton Href="/clients-test"
+                   Variant="Variant.Filled"
+                   Color="Color.Primary">
+            Clients - grille MudBlazor
+        </MudButton>
+
+        <MudButton Href="/clients-syncfusion"
+                   Variant="Variant.Filled"
+                   Color="Color.Primary">
+            Clients - grille Syncfusion
+        </MudButton>
+
+        <MudButton Href="/database-test"
+                   Variant="Variant.Outlined">
+            Tests de connexion et de transactions
+        </MudButton>
+
+    </MudStack>
+
+</MudContainer>

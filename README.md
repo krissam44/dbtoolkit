@@ -17,18 +17,18 @@ L'idée : écrire son SQL à la main, une fois, et ne pas réécrire à chaque p
 | `DbToolkit.Adapters.MudBlazor` | `MudDataGrid` en chargement serveur (`GridState` → `PageRequest`). |
 | `DbToolkit.Adapters.Syncfusion` | `SfGrid` avec `DataAdaptor` personnalisé (`DataManagerRequest` → `PageRequest`). |
 
-`SqliteToolkit.Demo` est une application Blazor complète qui utilise le tout (page MudBlazor, page Syncfusion, endpoints `/api/clients`).
+`DbToolkit.Demo` est une application Blazor complète qui utilise le tout (page MudBlazor, page Syncfusion, endpoints `/api/clients`).
 
 ## Installation
 
 Les paquets ne sont pas publiés sur nuget.org. Deux possibilités :
 
-- **Dossier local** : `dotnet pack SqliteToolkit/SqliteToolkit.slnx -c Release` produit les paquets dans `SqliteToolkit/nupkg`. Déclarez ce dossier comme source dans un `nuget.config` :
+- **Dossier local** : `dotnet pack src/DbToolkit.slnx -c Release` produit les paquets dans `src/nupkg`. Déclarez ce dossier comme source dans un `nuget.config` :
 
   ```xml
   <configuration>
     <packageSources>
-      <add key="DbToolkit-local" value="C:\chemin\vers\dbtoolkit\SqliteToolkit\nupkg" />
+      <add key="DbToolkit-local" value="C:\chemin\vers\dbtoolkit\src\nupkg" />
     </packageSources>
   </configuration>
   ```
@@ -154,8 +154,8 @@ public override async Task<object> ReadAsync(DataManagerRequest request, string?
     => (await clients.GetPagedAsync(request.ToPageRequest())).ToDataResult(request);
 
 // Minimal API
-services.AddSqliteToolkitApi();                       // bornes de page
-var api = app.MapGroup("/api/clients").WithSqliteToolkitProblems();   // erreurs → ProblemDetails
+services.AddDbToolkitApi();                       // bornes de page
+var api = app.MapGroup("/api/clients").WithDbToolkitProblems();   // erreurs → ProblemDetails
 api.MapGet("/", ([AsParameters] PageQuery q, PageRequestLimits limits, ClientRepository r) =>
     r.GetPagedAsync(q.ToPageRequest(limits)));
 // GET /api/clients?page=2&pageSize=20&search=dupont&sort=Nom,-Id&filter=Email:endswith:.fr
@@ -166,8 +166,8 @@ api.MapGet("/", ([AsParameters] PageQuery q, PageRequestLimits limits, ClientRep
 La suite (xUnit v3, plus de 200 tests) s'exécute à l'identique sur SQLite et MariaDB. Pour MariaDB, un serveur jetable :
 
 ```bash
-docker compose -f SqliteToolkit/docker-compose.tests.yml up -d
-dotnet test --project SqliteToolkit/DbToolkit.Tests/DbToolkit.Tests.csproj
+docker compose -f src/docker-compose.tests.yml up -d
+dotnet test --project src/DbToolkit.Tests/DbToolkit.Tests.csproj
 ```
 
 Le serveur écoute sur le port 13317 (`DBTOOLKIT_MARIADB_TESTS` permet d'en changer). S'il est injoignable, les tests MariaDB sont ignorés, pas échoués : vérifiez le compteur « ignoré » du résumé.
@@ -178,7 +178,6 @@ Le serveur écoute sur le port 13317 (`DBTOOLKIT_MARIADB_TESTS` permet d'en chan
 - Les bornes de `PageRequestLimits` s'appliquent à l'API, pas aux grilles.
 - `BaseRepository` impose cinq requêtes même à une liste en lecture seule.
 - La reprise sur interblocage est testée sur MariaDB avec un vrai interblocage ; sur SQLite, les erreurs de verrou sont simulées.
-- Quelques noms portent encore « Sqlite » (`AddSqliteToolkitApi`, `WithSqliteToolkitProblems`) alors qu'ils servent aux deux moteurs.
 - Les adaptateurs Syncfusion supposent une licence Syncfusion valide (leur clé se lit dans la configuration, jamais dans le dépôt).
 
 ## Licence

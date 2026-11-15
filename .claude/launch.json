@@ -4,13 +4,32 @@
     {
       "name": "demo",
       "runtimeExecutable": "dotnet",
-      "runtimeArgs": ["run", "--no-build", "--project", "SqliteToolkit/SqliteToolkit.Demo", "--launch-profile", "http"],
+      "runtimeArgs": [
+        "run",
+        "--no-build",
+        "--project",
+        "src/DbToolkit.Demo",
+        "--launch-profile",
+        "http"
+      ],
       "port": 5188
     },
     {
       "name": "demo-base-temporaire",
       "runtimeExecutable": "dotnet",
-      "runtimeArgs": ["run", "--no-build", "--project", "SqliteToolkit/SqliteToolkit.Demo", "--launch-profile", "http", "--", "--urls", "http://localhost:5189", "--Database:ConnectionString", "Data Source=Data/verification-api.tmp.db"],
+      "runtimeArgs": [
+        "run",
+        "--no-build",
+        "--project",
+        "src/DbToolkit.Demo",
+        "--launch-profile",
+        "http",
+        "--",
+        "--urls",
+        "http://localhost:5189",
+        "--Database:ConnectionString",
+        "Data Source=Data/verification-api.tmp.db"
+      ],
       "port": 5189
     }
   ]
