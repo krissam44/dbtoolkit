@@ -14,7 +14,8 @@ public static class SqliteToolkitProblems
     /// <list type="bullet">
     /// <item><see cref="ArgumentException"/> (colonne ou opérateur interdit, borne dépassée) : 400.</item>
     /// <item><see cref="DataAccessException"/> : 409 pour un doublon ou une clé étrangère,
-    /// 400 pour une valeur obligatoire manquante ou une règle CHECK, 503 si la base est occupée, sinon 500.</item>
+    /// ou une modification concurrente, 400 pour une valeur obligatoire manquante ou une règle CHECK,
+    /// 503 si la base est occupée ou en interblocage, sinon 500.</item>
     /// </list>
     /// Toute autre exception n'est pas prise en charge (<c>false</c>).
     /// </summary>
@@ -68,10 +69,15 @@ public static class SqliteToolkitProblems
                 "Valeur refusée",
                 "Une valeur ne respecte pas les règles de la base."),
 
-            DataAccessErrorKind.Busy => (
+            DataAccessErrorKind.Busy or DataAccessErrorKind.Deadlock => (
                 StatusCodes.Status503ServiceUnavailable,
                 "Base occupée",
                 "La base est occupée, réessayez dans un instant."),
+
+            DataAccessErrorKind.ConcurrencyConflict => (
+                StatusCodes.Status409Conflict,
+                "Modification concurrente",
+                "Cette donnée a été modifiée entre-temps. Rechargez-la avant de recommencer."),
 
             _ => (
                 StatusCodes.Status500InternalServerError,

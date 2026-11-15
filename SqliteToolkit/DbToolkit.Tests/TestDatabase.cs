@@ -1,4 +1,4 @@
-﻿using Dapper;
+using Dapper;
 using DbToolkit.Abstractions;
 using DbToolkit.Repositories;
 using MariaDbToolkit;
@@ -23,7 +23,7 @@ public sealed class TestDatabase : IAsyncDisposable
     /// </summary>
     private static readonly string MariaDbAdminConnectionString =
         Environment.GetEnvironmentVariable("DBTOOLKIT_MARIADB_TESTS")
-        ?? "Server=127.0.0.1;Port=3317;User ID=root;Password=dbtoolkit_tests;Connection Timeout=3;Pooling=false";
+        ?? "Server=127.0.0.1;Port=13317;User ID=root;Password=dbtoolkit_tests;Connection Timeout=3;Pooling=false";
 
     private static readonly Lazy<Task<bool>> MariaDbAvailable = new(ProbeMariaDbAsync);
 
@@ -48,6 +48,12 @@ public sealed class TestDatabase : IAsyncDisposable
 
     public BareItemRepository BareItems
         => _provider.GetRequiredService<BareItemRepository>();
+
+    public DocumentRepository Documents
+        => _provider.GetRequiredService<DocumentRepository>();
+
+    public UnguardedDocumentRepository UnguardedDocuments
+        => _provider.GetRequiredService<UnguardedDocumentRepository>();
 
     // ---------------------------------------------------------------------------------
     // SQLite
@@ -83,6 +89,8 @@ public sealed class TestDatabase : IAsyncDisposable
         services.AddSqliteToolkit(options => options.ConnectionString = $"Data Source={path}");
         services.AddSingleton<ItemRepository>();
         services.AddSingleton<BareItemRepository>();
+        services.AddSingleton<DocumentRepository>();
+        services.AddSingleton<UnguardedDocumentRepository>();
     }
 
     public static async Task CreateSqliteSchemaAsync(IServiceProvider provider)
@@ -107,6 +115,13 @@ public sealed class TestDatabase : IAsyncDisposable
             (
                 Id INTEGER PRIMARY KEY AUTOINCREMENT,
                 ItemId INTEGER NOT NULL REFERENCES Item(Id)
+            );
+
+            CREATE TABLE Document
+            (
+                Id INTEGER PRIMARY KEY AUTOINCREMENT,
+                Titre TEXT NOT NULL,
+                Version INTEGER NOT NULL DEFAULT 1
             );
             """);
     }
@@ -160,6 +175,8 @@ public sealed class TestDatabase : IAsyncDisposable
         services.AddMariaDbToolkit(options => options.ConnectionString = connectionString);
         services.AddSingleton<ItemRepository>();
         services.AddSingleton<BareItemRepository>();
+        services.AddSingleton<DocumentRepository>();
+        services.AddSingleton<UnguardedDocumentRepository>();
 
         var provider = services.BuildServiceProvider();
 
@@ -182,6 +199,13 @@ public sealed class TestDatabase : IAsyncDisposable
                     Id INT AUTO_INCREMENT PRIMARY KEY,
                     ItemId INT NOT NULL,
                     CONSTRAINT FK_Etiquette_Item FOREIGN KEY (ItemId) REFERENCES Item(Id)
+                ) ENGINE = InnoDB;
+
+                CREATE TABLE Document
+                (
+                    Id INT AUTO_INCREMENT PRIMARY KEY,
+                    Titre VARCHAR(100) NOT NULL,
+                    Version INT NOT NULL DEFAULT 1
                 ) ENGINE = InnoDB;
                 """);
         }
@@ -350,4 +374,80 @@ public class BareItemRepository(IDbConnectionFactory factory, ILogger<BareItemRe
 
     protected override string DeleteSql
         => "DELETE FROM Item WHERE Id = @Id";
+}
+
+public class Document
+{
+    public int Id { get; set; }
+
+    public string Titre { get; set; } = string.Empty;
+
+    public int Version { get; set; } = 1;
+}
+
+/// <summary>
+/// Repository dont les écritures sont gardées par un numéro de version.
+/// </summary>
+public class DocumentRepository(IDbConnectionFactory factory, ILogger<DocumentRepository> logger)
+    : BaseRepository<Document, int>(factory, logger)
+{
+    protected override string GetByIdSql
+        => "SELECT Id, Titre, Version FROM Document WHERE Id = @Id";
+
+    protected override string GetAllSql
+        => "SELECT Id, Titre, Version FROM Document";
+
+    protected override string InsertSql
+        => "INSERT INTO Document (Titre) VALUES (@Titre) RETURNING Id";
+
+    protected override string UpdateSql
+        => "UPDATE Document SET Titre = @Titre, Version = Version + 1 WHERE Id = @Id AND Version = @Version";
+
+    protected override string DeleteSql
+        => "DELETE FROM Document WHERE Id = @Id";
+
+    protected override string? DeleteVersionedSql
+        => "DELETE FROM Document WHERE Id = @Id AND Version = @Version";
+
+    protected override string? ConcurrencyCheckSql
+        => "SELECT 1 FROM Document WHERE Id = @Id";
+
+    /// <summary>Exécute une opération quelconque par ExecuteAsync, pour tester la reprise.</summary>
+    public Task<int> RunAsync(Func<Task<int>> operation, IUnitOfWork? unitOfWork = null)
+        => ExecuteAsync((_, _) => operation(), unitOfWork, CancellationToken.None);
+
+    /// <summary>Écriture directe, pour verrouiller une ligne dans une transaction de test.</summary>
+    public Task<int> RenameAsync(int id, string titre, IUnitOfWork unitOfWork)
+    {
+        return ExecuteAsync(
+            (db, transaction) => db.ExecuteAsync(
+                "UPDATE Document SET Titre = @titre WHERE Id = @id",
+                new { id, titre },
+                transaction),
+            unitOfWork,
+            CancellationToken.None);
+    }
+}
+
+/// <summary>
+/// Même garde de version dans le SQL, mais sans ConcurrencyCheckSql :
+/// conflit et ligne disparue ne se distinguent pas.
+/// </summary>
+public class UnguardedDocumentRepository(IDbConnectionFactory factory, ILogger<UnguardedDocumentRepository> logger)
+    : BaseRepository<Document, int>(factory, logger)
+{
+    protected override string GetByIdSql
+        => "SELECT Id, Titre, Version FROM Document WHERE Id = @Id";
+
+    protected override string GetAllSql
+        => "SELECT Id, Titre, Version FROM Document";
+
+    protected override string InsertSql
+        => "INSERT INTO Document (Titre) VALUES (@Titre) RETURNING Id";
+
+    protected override string UpdateSql
+        => "UPDATE Document SET Titre = @Titre, Version = Version + 1 WHERE Id = @Id AND Version = @Version";
+
+    protected override string DeleteSql
+        => "DELETE FROM Document WHERE Id = @Id";
 }

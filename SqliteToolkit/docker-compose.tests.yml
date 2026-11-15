@@ -3,7 +3,8 @@
 #   docker compose -f docker-compose.tests.yml up -d     (démarrer)
 #   docker compose -f docker-compose.tests.yml down -v   (arrêter et tout effacer)
 #
-# Le port 3317 évite tout conflit avec un MariaDB installé sur le poste (3306).
+# Le port 13317 évite le MariaDB du poste (3306) et les plages basses que Windows
+# réserve à Hyper-V à chaque démarrage (3307-3406 par exemple).
 # Les identifiants ci-dessous ne servent qu'à ce conteneur de test.
 services:
   mariadb-tests:
@@ -12,7 +13,7 @@ services:
     environment:
       MARIADB_ROOT_PASSWORD: dbtoolkit_tests
     ports:
-      - "127.0.0.1:3317:3306"
+      - "127.0.0.1:13317:3306"
     tmpfs:
       - /var/lib/mysql
     healthcheck:

@@ -1,4 +1,4 @@
-﻿using System.Data.Common;
+using System.Data.Common;
 using System.Runtime.CompilerServices;
 using Dapper;
 using DbToolkit.Abstractions;
@@ -39,6 +39,35 @@ public abstract class BaseRepository<TEntity, TKey>
     protected abstract string DeleteSql { get; }
 
     // ---------------------------------------------------------------------------------
+    // Accès concurrents. Pour qu'un utilisateur n'écrase pas la saisie d'un autre,
+    // la table porte un numéro de version et UpdateSql le vérifie et l'incrémente :
+    //   UPDATE t SET ..., version = version + 1 WHERE id = @Id AND version = @Version
+
+    /// <summary>
+    /// Requête paramétrée par l'entité (<c>@Id</c>...) qui renvoie une ligne si
+    /// l'entité existe encore, par exemple <c>SELECT 1 FROM t WHERE id = @Id</c>.
+    /// Définie, elle permet à <see cref="UpdateAsync"/> et à
+    /// <see cref="DeleteVersionedAsync"/> de distinguer une ligne disparue (résultat
+    /// <c>false</c>) d'une ligne modifiée par quelqu'un d'autre
+    /// (<see cref="ConcurrencyException"/>). Absente : les deux cas renvoient <c>false</c>.
+    /// </summary>
+    protected virtual string? ConcurrencyCheckSql => null;
+
+    /// <summary>
+    /// Suppression gardée par la version, paramétrée par l'entité :
+    /// <c>DELETE FROM t WHERE id = @Id AND version = @Version</c>.
+    /// Nécessaire à <see cref="DeleteVersionedAsync"/>.
+    /// </summary>
+    protected virtual string? DeleteVersionedSql => null;
+
+    /// <summary>
+    /// Reprise des opérations exécutées hors transaction quand le moteur signale un
+    /// verrou ou un interblocage. Dans une transaction, c'est
+    /// <see cref="IUnitOfWorkFactory.ExecuteInTransactionAsync{TResult}"/> qui reprend le tout.
+    /// </summary>
+    protected virtual RetryPolicy RetryPolicy => RetryPolicy.Default;
+
+    // ---------------------------------------------------------------------------------
     // Configuration de la pagination. Les colonnes SQL désignent
     // celles renvoyées par GetAllSql.
 
@@ -66,12 +95,50 @@ public abstract class BaseRepository<TEntity, TKey>
     /// Les erreurs du moteur (<see cref="DbException"/>) sont journalisées et
     /// converties en <see cref="DataAccessException"/>, avec leur nature.
     /// À utiliser aussi pour les requêtes spécifiques des repositories dérivés.
+    /// <para>
+    /// Sans Unit of Work, une erreur passagère (verrou, interblocage) relance
+    /// <paramref name="operation"/> selon <see cref="RetryPolicy"/> : le moteur a annulé
+    /// l'instruction, la rejouer est sans risque. Avec un Unit of Work, l'erreur remonte,
+    /// car c'est toute la transaction qu'il faut reprendre.
+    /// </para>
     /// </summary>
     protected async Task<TResult> ExecuteAsync<TResult>(
         Func<DbConnection, DbTransaction?, Task<TResult>> operation,
         IUnitOfWork? unitOfWork,
         CancellationToken cancellationToken,
         [CallerMemberName] string operationName = "")
+    {
+        var policy = RetryPolicy;
+
+        for (var retry = 0; ; retry++)
+        {
+            try
+            {
+                return await ExecuteOnceAsync(operation, unitOfWork, cancellationToken, operationName);
+            }
+            catch (DataAccessException exception)
+                when (unitOfWork is null && exception.IsTransient && retry < policy.MaxRetries)
+            {
+                var delay = policy.DelayFor(retry + 1);
+
+                _logger.LogWarning(
+                    "Opération {Operation} du repository {Repository} bloquée par un verrou : reprise {Retry}/{MaxRetries} dans {Delay} ms.",
+                    operationName,
+                    GetType().Name,
+                    retry + 1,
+                    policy.MaxRetries,
+                    (int)delay.TotalMilliseconds);
+
+                await Task.Delay(delay, cancellationToken);
+            }
+        }
+    }
+
+    private async Task<TResult> ExecuteOnceAsync<TResult>(
+        Func<DbConnection, DbTransaction?, Task<TResult>> operation,
+        IUnitOfWork? unitOfWork,
+        CancellationToken cancellationToken,
+        string operationName)
     {
         DbConnection? ownedConnection = null;
 
@@ -97,7 +164,7 @@ public abstract class BaseRepository<TEntity, TKey>
 
             return await operation(db, transaction);
         }
-        catch (Exception ex) when (ex is not OperationCanceledException)
+        catch (Exception ex) when (ex is not OperationCanceledException and not ConcurrencyException)
         {
             _logger.LogError(
                 ex,
@@ -251,10 +318,81 @@ public abstract class BaseRepository<TEntity, TKey>
                         transaction: transaction,
                         cancellationToken: cancellationToken));
 
-                return affected > 0;
+                if (affected > 0)
+                    return true;
+
+                await ThrowIfStillExistsAsync(db, transaction, entity, cancellationToken);
+
+                return false;
             },
             unitOfWork,
             cancellationToken);
+    }
+
+    /// <summary>
+    /// Supprime l'entité si elle est encore dans la version lue (<see cref="DeleteVersionedSql"/>).
+    /// Renvoie <c>false</c> si elle n'existe plus.
+    /// </summary>
+    /// <exception cref="ConcurrencyException">
+    /// La ligne a été modifiée depuis sa lecture (si <see cref="ConcurrencyCheckSql"/> est défini).
+    /// </exception>
+    public Task<bool> DeleteVersionedAsync(
+        TEntity entity,
+        IUnitOfWork? unitOfWork = null,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(entity);
+
+        var sql = DeleteVersionedSql
+            ?? throw new NotSupportedException(
+                $"{GetType().Name} ne définit pas DeleteVersionedSql.");
+
+        return ExecuteAsync(
+            async (db, transaction) =>
+            {
+                var affected = await db.ExecuteAsync(
+                    new CommandDefinition(
+                        sql,
+                        entity,
+                        transaction: transaction,
+                        cancellationToken: cancellationToken));
+
+                if (affected > 0)
+                    return true;
+
+                await ThrowIfStillExistsAsync(db, transaction, entity, cancellationToken);
+
+                return false;
+            },
+            unitOfWork,
+            cancellationToken);
+    }
+
+    /// <summary>
+    /// Après une écriture gardée par la version qui n'a touché aucune ligne :
+    /// si la ligne existe encore, c'est qu'un autre l'a modifiée.
+    /// </summary>
+    private async Task ThrowIfStillExistsAsync(
+        DbConnection db,
+        DbTransaction? transaction,
+        TEntity entity,
+        CancellationToken cancellationToken)
+    {
+        if (ConcurrencyCheckSql is not { } sql)
+            return;
+
+        var rows = await db.QueryAsync<object>(
+            new CommandDefinition(
+                sql,
+                entity,
+                transaction: transaction,
+                cancellationToken: cancellationToken));
+
+        if (rows.Any())
+        {
+            throw new ConcurrencyException(
+                "La ligne a été modifiée par un autre utilisateur depuis sa lecture.");
+        }
     }
 
     // ---------------------------------------------------------------------------------

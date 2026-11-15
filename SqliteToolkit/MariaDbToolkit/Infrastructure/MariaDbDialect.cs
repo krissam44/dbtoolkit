@@ -23,7 +23,8 @@ public sealed class MariaDbDialect : ISqlDialect
             1451 or 1452 or 1216 or 1217 => DataAccessErrorKind.ForeignKeyViolation,
             1048 or 1364 => DataAccessErrorKind.NotNullViolation,       // colonne NULL interdite, valeur par défaut absente
             4025 or 3819 => DataAccessErrorKind.CheckViolation,         // CHECK (MariaDB, MySQL)
-            1205 or 1213 => DataAccessErrorKind.Busy,                   // attente de verrou expirée, interblocage
+            1205 => DataAccessErrorKind.Busy,                           // attente de verrou expirée
+            1213 => DataAccessErrorKind.Deadlock,                       // interblocage : transaction annulée
             _ => DataAccessErrorKind.Unknown
         };
     }

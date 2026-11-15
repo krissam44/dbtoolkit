@@ -1,0 +1,20 @@
+<Project>
+
+  <!-- Métadonnées communes des paquets NuGet de DbToolkit.
+       Les projets de test et la démo ne sont pas empaquetés (IsPackable=false chez eux). -->
+  <PropertyGroup>
+    <Version>0.2.0</Version>
+    <Authors>Christian Sammut</Authors>
+    <Company>Chriss Consulting</Company>
+    <Product>DbToolkit</Product>
+    <Description>Accès aux données Dapper pour SQLite et MariaDB : repositories, pagination unifiée, transactions, migrations, contrôle de version et reprise sur interblocage.</Description>
+    <PackageTags>dapper;sqlite;mariadb;repository;pagination;blazor</PackageTags>
+    <RepositoryType>git</RepositoryType>
+    <RepositoryUrl>https://github.com/krissam44/sqlitetoolkit</RepositoryUrl>
+    <PackageOutputPath>$(MSBuildThisFileDirectory)nupkg</PackageOutputPath>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <!-- CS1591, CS1573 : commentaires XML incomplets, sans gravité ici. -->
+    <NoWarn>$(NoWarn);CS1591;CS1573</NoWarn>
+  </PropertyGroup>
+
+</Project>
