@@ -21,19 +21,11 @@ L'idée : écrire son SQL à la main, une fois, et ne pas réécrire à chaque p
 
 ## Installation
 
-Les paquets ne sont pas publiés sur nuget.org. Deux possibilités :
+Les paquets sont publiés sur **GitHub Packages** (`https://nuget.pkg.github.com/krissam44/index.json`). Cette source demande une authentification, même pour lire : créez un jeton classique avec le droit `read:packages`, puis enregistrez la source **dans votre configuration utilisateur** (jamais dans un dépôt) :
 
-- **Dossier local** : `dotnet pack src/DbToolkit.slnx -c Release` produit les paquets dans `src/nupkg`. Déclarez ce dossier comme source dans un `nuget.config` :
-
-  ```xml
-  <configuration>
-    <packageSources>
-      <add key="DbToolkit-local" value="C:\chemin\vers\dbtoolkit\src\nupkg" />
-    </packageSources>
-  </configuration>
-  ```
-
-- **Référence de projet** vers les `.csproj` de ce dépôt.
+```bash
+dotnet nuget add source https://nuget.pkg.github.com/krissam44/index.json --name github-krissam44 --username VOTRE_NOM --password VOTRE_JETON --store-password-in-clear-text
+```
 
 Puis, par exemple pour une application MariaDB :
 
@@ -41,6 +33,8 @@ Puis, par exemple pour une application MariaDB :
 dotnet add package MariaDbToolkit
 dotnet add package DbToolkit.Adapters.AspNetCore
 ```
+
+Autres possibilités : `dotnet pack src/DbToolkit.slnx -c Release` produit les paquets dans `src/nupkg` (à déclarer comme source locale dans un `nuget.config`), ou une référence de projet vers les `.csproj` de ce dépôt.
 
 ## Démarrage rapide
 
